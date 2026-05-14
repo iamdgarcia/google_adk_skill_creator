@@ -1,0 +1,15 @@
+{
+  "skill_name": "sample-skill",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Please greet me, my name is Alice",
+      "expected_output": "Agent greets Alice by name",
+      "expected_skill_activated": true,
+      "expectations": [
+        "Response includes the name Alice",
+        "greet_user was called"
+      ]
+    }
+  ]
+}
