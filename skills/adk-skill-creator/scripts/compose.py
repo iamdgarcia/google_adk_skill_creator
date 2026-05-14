@@ -9,7 +9,7 @@ from google.adk.agents import LlmAgent
 from google.adk.skills import load_skill_from_dir
 from google.adk.tools.skill_toolset import SkillToolset
 
-_REQUIRED = {"name", "model", "skills", "runtime_factory"}
+_REQUIRED = {"name", "model", "skills"}
 
 
 def load_manifest(manifest_path: Path) -> dict[str, Any]:

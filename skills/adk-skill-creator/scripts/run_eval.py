@@ -5,6 +5,7 @@ import argparse
 import asyncio
 import json
 import time
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -45,7 +46,7 @@ def _run_single(skill_dir: Path, eval_case: dict, runtime, model: str, run_dir: 
 
     (outputs_dir / "transcript.md").write_text(_make_transcript(eval_case, result))
     (outputs_dir / "metrics.json").write_text(json.dumps({
-        "tool_calls": {c["name"]: 1 for c in result.tool_calls},
+        "tool_calls": dict(Counter(c["name"] for c in result.tool_calls)),
         "total_tool_calls": len(result.tool_calls),
         "skill_activated": result.skill_activated,
         "output_chars": len(result.response),

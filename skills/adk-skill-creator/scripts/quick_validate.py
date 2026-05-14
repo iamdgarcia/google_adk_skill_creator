@@ -23,6 +23,8 @@ def validate_skill_dir(skill_dir: Path) -> list[str]:
         RuntimeClass = load_runtime_class(tools_py)
     except AttributeError:
         return ["tools.py must define a SkillRuntime class"]
+    except Exception as e:
+        return [f"tools.py could not be loaded: {e}"]
 
     public_methods = {
         name
