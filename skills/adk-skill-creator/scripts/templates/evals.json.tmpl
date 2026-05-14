@@ -1,0 +1,16 @@
+{{
+  "skill_name": "{name}",
+  "pass_threshold": 0.85,
+  "evals": [
+    {{
+      "id": 1,
+      "prompt": "Example user prompt that should trigger this skill",
+      "expected_output": "Description of what the agent should return",
+      "expected_skill_activated": true,
+      "expectations": [
+        "Response addresses the user request",
+        "example_tool was called with appropriate parameters"
+      ]
+    }}
+  ]
+}}

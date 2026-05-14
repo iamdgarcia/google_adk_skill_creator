@@ -1,0 +1,13 @@
+class SkillRuntime:
+    """Runtime for the {name} skill. Add real dependencies to __init__."""
+
+    def __init__(self):
+        # Replace with actual dependencies: auth clients, DB connections, etc.
+        pass
+
+    def example_tool(self, param: str) -> dict:
+        """Example tool — replace with real implementation. Docstring becomes tool description."""
+        return {{"result": param}}
+
+    def get_tools(self) -> list:
+        return [self.example_tool]
