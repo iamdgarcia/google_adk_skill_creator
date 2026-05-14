@@ -1,0 +1,63 @@
+{
+  "skill_name": "adk-skill-creator",
+  "pass_threshold": 0.85,
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want to create a new ADK skill called 'order-status' for an e-commerce chatbot that checks order status",
+      "expected_output": "Agent scaffolds the skill directory, explains SkillRuntime, and mentions adk_additional_tools",
+      "expected_skill_activated": true,
+      "expectations": [
+        "Agent explains or runs scaffold.py",
+        "Agent explains the SkillRuntime class pattern",
+        "Agent mentions adk_additional_tools frontmatter field",
+        "Agent mentions eval_factory.py for mock runtime during testing"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Run the evals for my account-movements skill and help me interpret the results",
+      "expected_output": "Agent runs run_eval.py and explains how to use the grader",
+      "expected_skill_activated": true,
+      "expectations": [
+        "Agent provides the run_eval.py command with correct PYTHONPATH",
+        "Agent explains the grader agent role",
+        "Agent mentions the skill_activated check in grading results"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "My skill for account movements is not triggering when users ask about their balance. How do I fix it?",
+      "expected_output": "Agent guides through description optimization using run_loop.py",
+      "expected_skill_activated": true,
+      "expectations": [
+        "Agent identifies the description as the likely cause",
+        "Agent explains the run_loop.py --description flag",
+        "Agent explains the trigger evals JSON format",
+        "Agent suggests making the description more specific"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I have two ADK skills: account-movements and transfer. How do I combine them into one banking agent?",
+      "expected_output": "Agent explains agent.yaml, runtime_factory.py, and compose.py",
+      "expected_skill_activated": true,
+      "expectations": [
+        "Agent explains the agent.yaml manifest format",
+        "Agent explains runtime_factory.py with build_runtimes()",
+        "Agent mentions compose.py",
+        "Agent mentions multi_skill_evals.json for cross-skill testing"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "What is the capital of France?",
+      "expected_output": "Agent answers directly without invoking skill workflow",
+      "expected_skill_activated": false,
+      "expectations": [
+        "Agent does not invoke adk-skill-creator workflow",
+        "Agent answers the geography question directly"
+      ]
+    }
+  ]
+}
