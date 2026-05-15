@@ -19,6 +19,8 @@ ADK skills are discrete agent behaviours: a `SKILL.md` description, a `tools.py`
 - **`quick_validate.py`** — catch mismatches between `SKILL.md` and `tools.py` without a model call
 - **`adk-skill-creator` Claude skill** — drive the whole workflow from a Claude session
 
+→ **[Visual flow diagram](docs/skill-creation-flow.html)** — interactive step-by-step guide to creating a skill
+
 ---
 
 ## Prerequisites
