@@ -36,12 +36,22 @@ def _make_transcript(eval_case: dict, result) -> str:
     return "\n".join(lines)
 
 
-def _run_single(skill_dir: Path, eval_case: dict, runtime, model: str, run_dir: Path) -> None:
+def _run_single(
+    skill_dir: Path,
+    eval_case: dict,
+    runtime,
+    model: str,
+    run_dir: Path,
+    project: str | None = None,
+    location: str = "us-central1",
+) -> None:
     outputs_dir = run_dir / f"eval_{eval_case['id']}" / "outputs"
     outputs_dir.mkdir(parents=True)
 
     start = time.time()
-    result = asyncio.run(run_eval_case(skill_dir, runtime, eval_case["prompt"], model=model))
+    result = asyncio.run(
+        run_eval_case(skill_dir, runtime, eval_case["prompt"], model=model, project=project, location=location)
+    )
     duration = time.time() - start
 
     (outputs_dir / "transcript.md").write_text(_make_transcript(eval_case, result))
@@ -71,6 +81,8 @@ def main():
     parser = argparse.ArgumentParser(description="Run ADK skill evals")
     parser.add_argument("skill_dir", type=Path, help="Path to ADK skill directory")
     parser.add_argument("--model", default="gemini-2.0-flash")
+    parser.add_argument("--project", default=None, help="Google Cloud project ID for Vertex AI (uses ADC auth)")
+    parser.add_argument("--location", default="us-central1", help="Vertex AI region (default: us-central1)")
     parser.add_argument("--evals", type=int, nargs="+", help="Specific eval IDs to run")
     parser.add_argument(
         "--run-dir",
@@ -88,7 +100,7 @@ def main():
     args.run_dir.mkdir(parents=True, exist_ok=True)
     print(f"Running {len(cases)} eval(s) for: {evals_data['skill_name']}")
     for case in cases:
-        _run_single(args.skill_dir, case, runtime, args.model, args.run_dir)
+        _run_single(args.skill_dir, case, runtime, args.model, args.run_dir, project=args.project, location=args.location)
 
     print(f"\nResults written to: {args.run_dir}")
     print("Next: run the grader agent on each eval_N/ directory.")

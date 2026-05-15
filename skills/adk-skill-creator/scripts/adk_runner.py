@@ -1,14 +1,29 @@
 """ADK execution backend. Replaces the claude -p subprocess used in the original skill-creator."""
 
 from dataclasses import dataclass, field
+from functools import cached_property
 from pathlib import Path
 
 from google.adk.agents import LlmAgent
+from google.adk.models import Gemini
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.adk.skills import load_skill_from_dir
 from google.adk.tools.skill_toolset import SkillToolset
-from google.genai import types
+from google.genai import Client, types
+
+
+def _make_vertex_model(model_name: str, project: str, location: str) -> Gemini:
+    """Create a Gemini model instance backed by Vertex AI. Auth via ADC."""
+    _project = project
+    _location = location
+
+    class VertexGemini(Gemini):
+        @cached_property
+        def api_client(self) -> Client:
+            return Client(vertexai=True, project=_project, location=_location)
+
+    return VertexGemini(model=model_name)
 
 
 @dataclass
@@ -52,13 +67,17 @@ async def run_eval_case(
     runtime: object,
     prompt: str,
     model: str = "gemini-2.0-flash",
+    project: str | None = None,
+    location: str = "us-central1",
 ) -> RunResult:
     """Run a single eval prompt against the skill and return the result."""
     skill = load_skill_from_dir(skill_dir)
     tools = runtime.get_tools()
 
+    model_obj = _make_vertex_model(model, project, location) if project else model
     agent = LlmAgent(
-        model=model,
+        name="adk_eval_agent",
+        model=model_obj,
         tools=[SkillToolset(skills=[skill], additional_tools=tools)],
     )
 
@@ -68,7 +87,7 @@ async def run_eval_case(
         app_name="adk-eval",
         session_service=session_service,
     )
-    session = session_service.create_session(app_name="adk-eval", user_id="eval-user")
+    session = await session_service.create_session(app_name="adk-eval", user_id="eval-user")
 
     message = types.Content(role="user", parts=[types.Part(text=prompt)])
     events = []

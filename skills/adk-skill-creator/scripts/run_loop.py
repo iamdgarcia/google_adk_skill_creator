@@ -20,7 +20,7 @@ from google.adk.skills.models import Frontmatter, Skill
 from google.adk.tools.skill_toolset import SkillToolset
 from google.genai import types
 
-from scripts.adk_runner import was_skill_activated
+from scripts.adk_runner import _make_vertex_model, was_skill_activated
 from scripts.utils import import_eval_factory
 
 
@@ -30,6 +30,8 @@ async def _evaluate_description(
     queries: list[dict[str, Any]],
     runtime: object,
     model: str,
+    project: str | None = None,
+    location: str = "us-central1",
 ) -> dict:
     """Test description accuracy. Returns accuracy metrics and per-query results."""
     base_skill = load_skill_from_dir(skill_dir)
@@ -41,8 +43,10 @@ async def _evaluate_description(
         resources=base_skill.resources,
     )
 
+    model_obj = _make_vertex_model(model, project, location) if project else model
     agent = LlmAgent(
-        model=model,
+        name="loop_eval_agent",
+        model=model_obj,
         tools=[SkillToolset(skills=[test_skill], additional_tools=runtime.get_tools())],
     )
     session_service = InMemorySessionService()
@@ -50,7 +54,7 @@ async def _evaluate_description(
 
     results = []
     for q in queries:
-        session = session_service.create_session(app_name="loop", user_id="loop-user")
+        session = await session_service.create_session(app_name="loop", user_id="loop-user")
         message = types.Content(role="user", parts=[types.Part(text=q["query"])])
         events = []
         async for event in runner.run_async(
@@ -71,13 +75,17 @@ def main():
     parser.add_argument("trigger_evals", type=Path, help="JSON array of {query, should_trigger} objects")
     parser.add_argument("--description", required=True, help="Description string to test")
     parser.add_argument("--model", default="gemini-2.0-flash")
+    parser.add_argument("--project", default=None, help="Google Cloud project ID for Vertex AI (uses ADC auth)")
+    parser.add_argument("--location", default="us-central1", help="Vertex AI region (default: us-central1)")
     parser.add_argument("--output", type=Path, default=None)
     args = parser.parse_args()
 
     queries = json.loads(args.trigger_evals.read_text())
     runtime = import_eval_factory(args.skill_dir / "evals" / "eval_factory.py")()
 
-    result = asyncio.run(_evaluate_description(args.skill_dir, args.description, queries, runtime, args.model))
+    result = asyncio.run(
+        _evaluate_description(args.skill_dir, args.description, queries, runtime, args.model, project=args.project, location=args.location)
+    )
 
     print(f"Accuracy: {result['accuracy']:.0%} ({sum(r['correct'] for r in result['results'])}/{len(result['results'])})")
     for r in result["results"]:
