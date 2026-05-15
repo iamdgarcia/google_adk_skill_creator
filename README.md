@@ -1,4 +1,10 @@
-# google-adk-skill-creator
+# Google ADK Skill Creator
+
+![Python](https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white)
+![Google ADK](https://img.shields.io/badge/google--adk-1.33+-EA4335?logo=google&logoColor=white)
+![Vertex AI](https://img.shields.io/badge/vertex--ai-enabled-4285F4?logo=googlecloud&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-passing-brightgreen?logo=pytest&logoColor=white)
+![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
 A library and Claude skill for building, testing, and composing [Google ADK](https://google.github.io/adk-docs/) skills — modular agent capabilities with dynamic tool injection.
 
