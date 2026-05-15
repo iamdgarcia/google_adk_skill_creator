@@ -21,7 +21,12 @@ def _make_vertex_model(model_name: str, project: str, location: str) -> Gemini:
     class VertexGemini(Gemini):
         @cached_property
         def api_client(self) -> Client:
-            return Client(vertexai=True, project=_project, location=_location)
+            return Client(
+                vertexai=True,
+                project=_project,
+                location=_location,
+                http_options=types.HttpOptions(api_version="v1"),
+            )
 
     return VertexGemini(model=model_name)
 
