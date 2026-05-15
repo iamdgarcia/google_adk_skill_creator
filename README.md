@@ -19,8 +19,6 @@ ADK skills are discrete agent behaviours: a `SKILL.md` description, a `tools.py`
 - **`quick_validate.py`** — catch mismatches between `SKILL.md` and `tools.py` without a model call
 - **`adk-skill-creator` Claude skill** — drive the whole workflow from a Claude session
 
-→ **[Visual flow diagram](docs/skill-creation-flow.html)** — interactive step-by-step guide to creating a skill
-
 ---
 
 ## Prerequisites
@@ -28,6 +26,26 @@ ADK skills are discrete agent behaviours: a `SKILL.md` description, a `tools.py`
 - Python 3.11+
 - `gcloud` CLI authenticated with Application Default Credentials
 - A Google Cloud project with the Vertex AI API enabled and billing active
+
+---
+
+## Install as a Claude Code plugin
+
+Add this repository as a custom plugin source:
+
+```text
+/plugin add github:iamdgarcia/google_adk_skill_creator
+```
+
+Then install the skill:
+
+```text
+/plugin install google-adk-skill-creator@iamdgarcia
+```
+
+The `adk-skill-creator` skill will be available in your Claude Code sessions automatically.
+
+**Codex CLI:** The repo also ships `.codex-plugin/plugin.json` and is compatible with Codex's plugin system.
 
 ---
 

@@ -1,0 +1,12 @@
+{
+  "name": "google-adk-skill-creator",
+  "version": "0.1.0",
+  "description": "Build, test, evaluate, and compose Google ADK skills with dynamic tool injection.",
+  "author": {
+    "name": "Daniel García Peña",
+    "url": "https://github.com/iamdgarcia"
+  },
+  "repository": "https://github.com/iamdgarcia/google_adk_skill_creator",
+  "license": "Apache-2.0",
+  "keywords": ["google-adk", "claude", "claude-code", "gemini", "vertex-ai", "skill", "agent"]
+}
