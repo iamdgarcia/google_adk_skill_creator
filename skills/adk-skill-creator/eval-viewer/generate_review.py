@@ -84,37 +84,38 @@ def _find_runs_recursive(root: Path, current: Path, runs: list[dict]) -> None:
 
 def build_run(root: Path, run_dir: Path) -> dict | None:
     """Build a run dict with prompt, outputs, and grading data."""
-    prompt = ""
-    eval_id = None
+    metadata = _load_json_candidates(
+        [run_dir / "eval_metadata.json", run_dir.parent / "eval_metadata.json"]
+    )
+    transcript = _read_text_candidates(
+        [run_dir / "transcript.md", run_dir / "outputs" / "transcript.md"]
+    )
 
-    # Try eval_metadata.json
-    for candidate in [run_dir / "eval_metadata.json", run_dir.parent / "eval_metadata.json"]:
-        if candidate.exists():
-            try:
-                metadata = json.loads(candidate.read_text())
-                prompt = metadata.get("prompt", "")
-                eval_id = metadata.get("eval_id")
-            except (json.JSONDecodeError, OSError):
-                pass
-            if prompt:
-                break
-
-    # Fall back to transcript.md
+    prompt = _string_or_empty(metadata.get("prompt"))
     if not prompt:
-        for candidate in [run_dir / "transcript.md", run_dir / "outputs" / "transcript.md"]:
-            if candidate.exists():
-                try:
-                    text = candidate.read_text()
-                    match = re.search(r"## Eval Prompt\n\n([\s\S]*?)(?=\n##|$)", text)
-                    if match:
-                        prompt = match.group(1).strip()
-                except OSError:
-                    pass
-                if prompt:
-                    break
-
+        prompt = _extract_markdown_inline_field(transcript, "Prompt")
     if not prompt:
         prompt = "(No prompt found)"
+
+    expected_output = _string_or_empty(metadata.get("expected_output"))
+    if not expected_output:
+        expected_output = _extract_markdown_inline_field(transcript, "Expected")
+
+    response = _string_or_empty(metadata.get("response"))
+    if not response:
+        response = _extract_markdown_section(transcript, "Response")
+
+    eval_id = metadata.get("eval_id")
+    if eval_id is None:
+        eval_id = _extract_eval_id(transcript)
+
+    tool_calls = metadata.get("tool_calls")
+    if not isinstance(tool_calls, list):
+        tool_calls = _extract_tool_calls_from_transcript(transcript)
+
+    metrics = _load_json_candidates([run_dir / "outputs" / "metrics.json"])
+    skill_activation = _load_json_candidates([run_dir / "outputs" / "skill_activation.json"])
+    timing = _load_json_candidates([run_dir / "timing.json", run_dir.parent / "timing.json"])
 
     run_id = str(run_dir.relative_to(root)).replace("/", "-").replace("\\", "-")
 
@@ -141,9 +142,125 @@ def build_run(root: Path, run_dir: Path) -> dict | None:
         "id": run_id,
         "prompt": prompt,
         "eval_id": eval_id,
+        "expected_output": expected_output,
+        "response": response,
+        "tool_calls": tool_calls,
+        "metrics": metrics or None,
+        "skill_activation": skill_activation or None,
+        "timing": timing or None,
         "outputs": output_files,
         "grading": grading,
     }
+
+
+def _string_or_empty(value: object) -> str:
+    """Return one stripped string or the empty string when the value is unusable."""
+
+    if not isinstance(value, str):
+        return ""
+    return value.strip()
+
+
+def _load_json_candidates(candidates: list[Path]) -> dict:
+    """Return the first valid JSON object found in the provided candidate paths."""
+
+    for candidate in candidates:
+        if not candidate.exists():
+            continue
+        try:
+            loaded = json.loads(candidate.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        if isinstance(loaded, dict):
+            return loaded
+    return {}
+
+
+def _read_text_candidates(candidates: list[Path]) -> str:
+    """Return the first readable UTF-8 text payload found in the candidate paths."""
+
+    for candidate in candidates:
+        if not candidate.exists():
+            continue
+        try:
+            return candidate.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+    return ""
+
+
+def _extract_markdown_inline_field(transcript: str, field_name: str) -> str:
+    """Return one inline markdown field like ``**Prompt:** ...`` from the transcript."""
+
+    if not transcript:
+        return ""
+    pattern = rf"\*\*{re.escape(field_name)}:\*\*\s*([\s\S]*?)(?=\n\n\*\*|\n\n##|\n##|$)"
+    match = re.search(pattern, transcript)
+    if not match:
+        return ""
+    return match.group(1).strip()
+
+
+def _extract_markdown_section(transcript: str, heading: str) -> str:
+    """Return the body of one ``## Heading`` section from the transcript."""
+
+    if not transcript:
+        return ""
+    pattern = rf"##\s+{re.escape(heading)}\s*\n([\s\S]*?)(?=\n##\s+|$)"
+    match = re.search(pattern, transcript)
+    if not match:
+        return ""
+    return match.group(1).strip()
+
+
+def _extract_eval_id(transcript: str) -> int | None:
+    """Return the numeric eval id from the transcript heading when available."""
+
+    if not transcript:
+        return None
+    match = re.search(r"^#\s+Eval\s+(\d+)\s*$", transcript, flags=re.MULTILINE)
+    if not match:
+        return None
+    return int(match.group(1))
+
+
+def _extract_tool_calls_from_transcript(transcript: str) -> list[dict]:
+    """Parse the tool-call bullet list from one markdown transcript when present."""
+
+    tool_calls_section = _extract_markdown_section(transcript, "Tool Calls")
+    if not tool_calls_section or tool_calls_section == "_(none)_":
+        return []
+
+    parsed_calls: list[dict] = []
+    for index, line in enumerate(tool_calls_section.splitlines(), start=1):
+        stripped = line.strip()
+        if not stripped.startswith("- `") or not stripped.endswith("`"):
+            continue
+        invocation = stripped[3:-1]
+        if "(" not in invocation or not invocation.endswith(")"):
+            parsed_calls.append(
+                {
+                    "step": index,
+                    "name": invocation,
+                    "args": {},
+                }
+            )
+            continue
+        name, raw_args = invocation.split("(", maxsplit=1)
+        raw_args = raw_args[:-1]
+        parsed_args: object
+        try:
+            parsed_args = json.loads(raw_args) if raw_args else {}
+        except json.JSONDecodeError:
+            parsed_args = {"raw": raw_args}
+        parsed_calls.append(
+            {
+                "step": index,
+                "name": name,
+                "args": parsed_args,
+            }
+        )
+    return parsed_calls
 
 
 def embed_file(path: Path) -> dict:
