@@ -13,6 +13,25 @@ from scripts.adk_runner import run_eval_case
 from scripts.utils import import_eval_factory, parse_frontmatter
 
 
+def _write_json(path: Path, payload: object) -> None:
+    """Write one JSON payload to disk using UTF-8 encoding."""
+
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def _tool_call_steps(tool_calls: list[dict]) -> list[dict]:
+    """Return the ordered tool-call trace annotated with one-based step numbers."""
+
+    return [
+        {
+            "step": index,
+            "name": call["name"],
+            "args": call.get("args", {}),
+        }
+        for index, call in enumerate(tool_calls, start=1)
+    ]
+
+
 def _make_transcript(eval_case: dict, result) -> str:
     """Format a RunResult as markdown for the grader agent."""
     lines = [
@@ -47,31 +66,56 @@ def _run_single(
 ) -> None:
     outputs_dir = run_dir / f"eval_{eval_case['id']}" / "outputs"
     outputs_dir.mkdir(parents=True)
+    eval_dir = outputs_dir.parent
 
     start = time.time()
     result = asyncio.run(
         run_eval_case(skill_dir, runtime, eval_case["prompt"], model=model, project=project, location=location)
     )
     duration = time.time() - start
+    ordered_tool_calls = _tool_call_steps(result.tool_calls)
 
-    (outputs_dir / "transcript.md").write_text(_make_transcript(eval_case, result))
-    (outputs_dir / "metrics.json").write_text(json.dumps({
-        "tool_calls": dict(Counter(c["name"] for c in result.tool_calls)),
-        "total_tool_calls": len(result.tool_calls),
-        "skill_activated": result.skill_activated,
-        "output_chars": len(result.response),
-    }, indent=2))
-    (outputs_dir.parent / "timing.json").write_text(json.dumps({
-        "executor_duration_seconds": round(duration, 2),
-    }, indent=2))
+    (outputs_dir / "transcript.md").write_text(
+        _make_transcript(eval_case, result),
+        encoding="utf-8",
+    )
+    _write_json(
+        outputs_dir / "metrics.json",
+        {
+            "tool_calls": dict(Counter(c["name"] for c in result.tool_calls)),
+            "total_tool_calls": len(result.tool_calls),
+            "skill_activated": result.skill_activated,
+            "output_chars": len(result.response),
+        },
+    )
+    _write_json(
+        eval_dir / "eval_metadata.json",
+        {
+            "eval_id": eval_case["id"],
+            "prompt": eval_case["prompt"],
+            "expected_output": eval_case.get("expected_output", ""),
+            "expected_skill_activated": eval_case.get("expected_skill_activated"),
+            "response": result.response,
+            "tool_calls": ordered_tool_calls,
+        },
+    )
+    _write_json(
+        eval_dir / "timing.json",
+        {
+            "executor_duration_seconds": round(duration, 2),
+        },
+    )
 
     if eval_case.get("expected_skill_activated") is not None:
         skill_name = parse_frontmatter(skill_dir / "SKILL.md")["name"]
-        (outputs_dir / "skill_activation.json").write_text(json.dumps({
-            "expected": eval_case["expected_skill_activated"],
-            "actual": result.skill_activated,
-            "skill_name": skill_name,
-        }, indent=2))
+        _write_json(
+            outputs_dir / "skill_activation.json",
+            {
+                "expected": eval_case["expected_skill_activated"],
+                "actual": result.skill_activated,
+                "skill_name": skill_name,
+            },
+        )
 
     status = "ACTIVATED" if result.skill_activated else "NOT ACTIVATED"
     print(f"  [{status}] Eval {eval_case['id']} — {len(result.tool_calls)} tool calls, {duration:.1f}s")
