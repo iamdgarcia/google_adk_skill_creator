@@ -124,6 +124,103 @@
       line-height: 1.6;
     }
 
+    /* ---- Summary / sequence / response ---- */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.875rem;
+    }
+    .summary-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.875rem;
+      background: var(--bg);
+    }
+    .summary-label {
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.375rem;
+    }
+    .summary-value {
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .status-row {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.25rem 0.625rem;
+      border-radius: 9999px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .status-pill.expected {
+      background: rgba(33, 150, 243, 0.12);
+      color: #1976d2;
+    }
+    .status-pill.pass {
+      background: var(--green-bg);
+      color: var(--green);
+    }
+    .status-pill.fail {
+      background: var(--red-bg);
+      color: var(--red);
+    }
+    .sequence-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .sequence-step {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.875rem;
+      background: var(--bg);
+    }
+    .sequence-step-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 0.625rem;
+    }
+    .sequence-step-index {
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+    .sequence-step-name {
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text);
+      word-break: break-word;
+    }
+    .sequence-step pre,
+    .response-text {
+      font-size: 0.8125rem;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+      margin: 0;
+    }
+
     /* ---- Outputs ---- */
     .output-file {
       border: 1px solid var(--border);
@@ -567,6 +664,30 @@
         </div>
       </div>
 
+      <!-- Summary -->
+      <div class="section">
+        <div class="section-header">Summary</div>
+        <div class="section-body" id="summary-body">
+          <div class="empty-state">No summary available for this run</div>
+        </div>
+      </div>
+
+      <!-- Sequence -->
+      <div class="section">
+        <div class="section-header">Sequence</div>
+        <div class="section-body" id="sequence-body">
+          <div class="empty-state">No tool-call sequence recorded for this run</div>
+        </div>
+      </div>
+
+      <!-- Final response -->
+      <div class="section">
+        <div class="section-header">Final Response</div>
+        <div class="section-body" id="response-body">
+          <div class="empty-state">No final response captured for this run</div>
+        </div>
+      </div>
+
       <!-- Outputs -->
       <div class="section">
         <div class="section-header">Output</div>
@@ -711,6 +832,11 @@
       // Prompt
       document.getElementById("prompt-text").textContent = run.prompt;
 
+      // Summary / sequence / response
+      renderSummary(run);
+      renderSequence(run);
+      renderResponse(run);
+
       // Config badge
       const badge = document.getElementById("config-badge");
       const configMatch = run.id.match(/(with_skill|without_skill|new_skill|old_skill)/);
@@ -758,6 +884,98 @@
 
       // Scroll main content to top
       document.querySelector(".main").scrollTop = 0;
+    }
+
+    function renderSummary(run) {
+      const container = document.getElementById("summary-body");
+      const cards = [];
+
+      if (run.expected_output) {
+        cards.push(`
+          <div class="summary-card">
+            <div class="summary-label">Expected Output</div>
+            <div class="summary-value">${escapeHtml(run.expected_output)}</div>
+          </div>
+        `);
+      }
+
+      const activation = run.skill_activation || null;
+      if (activation) {
+        const expected = activation.expected === true ? "Should activate" : "Should not activate";
+        const actual = activation.actual === true ? "Activated" : "Did not activate";
+        const outcomeClass = activation.expected === activation.actual ? "pass" : "fail";
+        cards.push(`
+          <div class="summary-card">
+            <div class="summary-label">Skill Activation</div>
+            <div class="status-row">
+              <span class="status-pill expected">${escapeHtml(expected)}</span>
+              <span class="status-pill ${outcomeClass}">${escapeHtml(actual)}</span>
+            </div>
+          </div>
+        `);
+      }
+
+      const metrics = run.metrics || null;
+      if (metrics) {
+        cards.push(`
+          <div class="summary-card">
+            <div class="summary-label">Tool Calls</div>
+            <div class="summary-value">${metrics.total_tool_calls ?? 0}</div>
+          </div>
+        `);
+      }
+
+      const timing = run.timing || null;
+      if (timing && timing.executor_duration_seconds != null) {
+        cards.push(`
+          <div class="summary-card">
+            <div class="summary-label">Duration</div>
+            <div class="summary-value">${escapeHtml(String(timing.executor_duration_seconds))}s</div>
+          </div>
+        `);
+      }
+
+      if (cards.length === 0) {
+        container.innerHTML = '<div class="empty-state">No summary available for this run</div>';
+        return;
+      }
+
+      container.innerHTML = `<div class="summary-grid">${cards.join("")}</div>`;
+    }
+
+    function renderSequence(run) {
+      const container = document.getElementById("sequence-body");
+      const toolCalls = Array.isArray(run.tool_calls) ? run.tool_calls : [];
+
+      if (toolCalls.length === 0) {
+        container.innerHTML = '<div class="empty-state">No tool-call sequence recorded for this run</div>';
+        return;
+      }
+
+      const steps = toolCalls.map((call, index) => {
+        const stepNumber = call.step ?? index + 1;
+        const prettyArgs = JSON.stringify(call.args ?? {}, null, 2);
+        return `
+          <div class="sequence-step">
+            <div class="sequence-step-header">
+              <div class="sequence-step-index">Step ${escapeHtml(String(stepNumber))}</div>
+              <div class="sequence-step-name">${escapeHtml(call.name || "(unknown)")}</div>
+            </div>
+            <pre>${escapeHtml(prettyArgs)}</pre>
+          </div>
+        `;
+      });
+
+      container.innerHTML = `<div class="sequence-list">${steps.join("")}</div>`;
+    }
+
+    function renderResponse(run) {
+      const container = document.getElementById("response-body");
+      if (!run.response) {
+        container.innerHTML = '<div class="empty-state">No final response captured for this run</div>';
+        return;
+      }
+      container.innerHTML = `<pre class="response-text">${escapeHtml(run.response)}</pre>`;
     }
 
     // ---- Render outputs ----
