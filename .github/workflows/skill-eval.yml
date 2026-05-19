@@ -1,0 +1,44 @@
+name: Skill Eval
+
+on:
+  pull_request:
+    paths:
+      - 'skills/**'
+      - '.github/workflows/skill-eval.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'skills/**'
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    env:
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      SKILL_DIR: skills/adk-skill-creator
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install google-adk google-genai
+
+      - name: Run eval pipeline
+        run: |
+          PYTHONPATH=skills/adk-skill-creator \
+          python skills/adk-skill-creator/scripts/eval_pipeline.py \
+            $SKILL_DIR \
+            --model gemini-2.0-flash \
+            --grader-model gemini-2.5-flash-preview-05-20
+
+      - name: Upload eval run
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-run-${{ github.run_id }}
+          path: runs/
+          retention-days: 14
