@@ -4,6 +4,7 @@
   "evals": [
     {
       "id": 1,
+      "difficulty": "easy",
       "prompt": "I want to create a new ADK skill called 'order-status' for an e-commerce chatbot that checks order status",
       "expected_output": "Agent scaffolds the skill directory, explains SkillRuntime, and mentions adk_additional_tools",
       "expected_skill_activated": true,
@@ -16,6 +17,7 @@
     },
     {
       "id": 2,
+      "difficulty": "easy",
       "prompt": "Run the evals for my account-movements skill and help me interpret the results",
       "expected_output": "Agent runs run_eval.py and explains how to use the grader",
       "expected_skill_activated": true,
@@ -27,6 +29,7 @@
     },
     {
       "id": 3,
+      "difficulty": "easy",
       "prompt": "My skill for account movements is not triggering when users ask about their balance. How do I fix it?",
       "expected_output": "Agent guides through description optimization using run_loop.py",
       "expected_skill_activated": true,
@@ -39,6 +42,7 @@
     },
     {
       "id": 4,
+      "difficulty": "easy",
       "prompt": "I have two ADK skills: account-movements and transfer. How do I combine them into one banking agent?",
       "expected_output": "Agent explains agent.yaml, runtime_factory.py, and compose.py",
       "expected_skill_activated": true,
@@ -51,12 +55,75 @@
     },
     {
       "id": 5,
+      "difficulty": "easy",
       "prompt": "What is the capital of France?",
       "expected_output": "Agent answers directly without invoking skill workflow",
       "expected_skill_activated": false,
       "expectations": [
         "Agent does not invoke adk-skill-creator workflow",
         "Agent answers the geography question directly"
+      ]
+    },
+    {
+      "id": 6,
+      "difficulty": "medium",
+      "prompt": "My eval pass rate is 0.6 and I'm not sure which expectations are failing. How do I debug this?",
+      "expected_output": "Agent explains how to read grading.json, use the grader agent, and interpret expectation failures",
+      "expected_skill_activated": true,
+      "expectations": [
+        "Agent explains how to read grading.json expectation results",
+        "Agent mentions the grader agent and what it checks",
+        "Agent suggests looking at the transcript to trace agent behavior",
+        "Agent does not confuse ADK skill evals with general unit testing"
+      ]
+    },
+    {
+      "id": 7,
+      "difficulty": "medium",
+      "prompt": "What does adk_additional_tools in SKILL.md frontmatter do, and what happens if I add a method to SkillRuntime without listing it there?",
+      "expected_output": "Agent explains that adk_additional_tools controls which SkillRuntime methods are exposed, and that quick_validate.py catches mismatches",
+      "expected_skill_activated": true,
+      "expectations": [
+        "Agent explains that adk_additional_tools maps SkillRuntime methods to ADK tools",
+        "Agent explains that unlisted methods are not exposed to the agent",
+        "Agent mentions quick_validate.py as the tool that catches mismatches"
+      ]
+    },
+    {
+      "id": 8,
+      "difficulty": "medium",
+      "prompt": "How do I deploy a Google Cloud Run service with autoscaling and set environment variables?",
+      "expected_output": "Agent answers the Cloud Run question directly without invoking ADK skill workflow",
+      "expected_skill_activated": false,
+      "expectations": [
+        "Agent does not invoke adk-skill-creator workflow",
+        "Agent addresses the Cloud Run deployment question directly",
+        "Agent does not conflate Cloud Run deployment with ADK skill packaging"
+      ]
+    },
+    {
+      "id": 9,
+      "difficulty": "medium",
+      "prompt": "I need to write integration tests for a Python microservice that calls a third-party REST API. What's the best approach?",
+      "expected_output": "Agent gives general integration testing advice without invoking ADK skill workflow",
+      "expected_skill_activated": false,
+      "expectations": [
+        "Agent does not invoke adk-skill-creator workflow",
+        "Agent gives general Python integration testing guidance",
+        "Agent does not confuse general service testing with ADK skill evals"
+      ]
+    },
+    {
+      "id": 10,
+      "difficulty": "hard",
+      "prompt": "I'm building a customer support agent with 4 ADK skills. After composing them, some skills conflict — the agent picks the wrong one for ambiguous queries. How do I fix this?",
+      "expected_output": "Agent explains that description precision is critical for skill routing, recommends run_loop.py to optimize descriptions, and suggests evaluating cross-skill activation with trigger evals",
+      "expected_skill_activated": true,
+      "expectations": [
+        "Agent identifies skill description precision as the root cause of routing conflicts",
+        "Agent recommends using run_loop.py with negative trigger cases from the conflicting skill",
+        "Agent explains how to write trigger evals that cover ambiguous queries",
+        "Agent mentions that each skill description should capture what the skill does AND explicitly exclude similar-sounding capabilities"
       ]
     }
   ]
