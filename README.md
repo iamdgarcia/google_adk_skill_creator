@@ -7,6 +7,7 @@
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
 A library and Claude skill for building, testing, and composing [Google ADK](https://google.github.io/adk-docs/) skills — modular agent capabilities with dynamic tool injection.
+<img width="1536" height="1024" alt="main_image" src="https://github.com/user-attachments/assets/9baa864a-f981-4f90-8faf-5369d0c58865" />
 
 ## What this is
 
